@@ -16,6 +16,9 @@ mazda/
 ├── sites.example.json         # 无敏感信息的站点示例
 ├── .env.example               # 环境模板，令牌为不可用占位值
 ├── README.md                  # 启动、接入、数据口径与限制
+├── _internal/                 # 仅本地的部署文档与记录，Git 忽略，不随克隆分发
+│   ├── README.md              # 内部文档入口与记录约定
+│   └── deployments.md         # 部署操作、验证与回滚记录
 ├── .git/                       # 本地 Git 元数据，不纳入版本控制
 ├── .gitignore                  # 敏感文件与常见本地临时产物的排除规则
 ├── AGENTS.md                   # 整个仓库的 Agent 入口
@@ -30,11 +33,11 @@ mazda/
             └── README.md      # 按月归档与检索规则
 ```
 
-本地 `.env`、`sites.json`、`data/`、`node_modules/`、`.tmp/` 被 Git 忽略。初始化生成的管理令牌只保留在本地配置中；验证截图和探针位于 `.tmp/`。
+本地 `.env`、`sites.json`、`data/`、`node_modules/`、`.tmp/`、`_internal/` 被 Git 忽略。初始化生成的管理令牌只保留在本地配置中；验证截图和探针位于 `.tmp/`。部署说明与操作记录统一放在根目录 `_internal/`，不提交或推送至 GitHub；新克隆需自行创建该目录。
 
 ## 架构与模块登记
 
-唯一业务模块为 [analytics](./modules/analytics.md)，入口 `src/index.ts`。配置加载、站点配置持久化、路由、事件、存储分别位于 src/config.ts、site-config.ts、app.ts、events.ts、database.ts。WebUI 可维护站点并热更新，配置持久化到 SITE_CONFIG（默认 sites.json）。运行基线 Bun 1.3.5；TypeScript 5.9.3、@types/bun 1.3.5 仅为开发依赖。运行时无第三方依赖，无 Redis、消息队列或远程服务依赖。协议 v1 为当前实现格式，尚未由用户确认为冻结协议；未发布或部署。
+唯一业务模块为 [analytics](./modules/analytics.md)，入口 `src/index.ts`。配置加载、站点配置持久化、路由、事件、存储分别位于 src/config.ts、site-config.ts、app.ts、events.ts、database.ts。WebUI 可维护站点并热更新，配置持久化到 SITE_CONFIG（默认 sites.json）。运行基线 Bun 1.3.5；TypeScript 5.9.3、@types/bun 1.3.5 仅为开发依赖。运行时无第三方依赖，无 Redis、消息队列或远程服务依赖。协议 v1 为当前实现格式，尚未由用户确认为冻结协议；部署状态与操作记录见本地 `_internal/`。
 
 ## 更新时机
 

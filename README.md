@@ -2,7 +2,7 @@
 
 基于 Bun、TypeScript 和 SQLite 的个人网站统计服务。运行时无第三方依赖，一套服务提供采集脚本、统计 API 和中文管理看板。
 
-当前版本 **0.1.0**，项目与 SDK 的当前版本统一取自 `package.json` 的 `version`；启动日志和 `/health` 返回运行版本。
+当前版本 **0.1.1**，项目与 SDK 的当前版本统一取自 `package.json` 的 `version`；启动日志和 `/health` 返回运行版本。
 
 ## 已实现
 
@@ -28,6 +28,8 @@ bun run dev
 ```
 
 `setup` 会创建被 Git 忽略的 `.env` 与 `sites.json`，生成随机管理令牌，不覆盖已有文件。打开 [本地看板](http://127.0.0.1:3000/admin)，输入本地 `.env` 中的 `ADMIN_TOKEN`。令牌只保留在页面内存；刷新或退出后需要重新输入。
+
+接入本机 OSG 网关时，可在应用环境中配置与网关相同的 `WS_AUTH_UID_SECRET`。看板会自动尝试网关登录；管理 API 接受 loopback 连接中携带的 `x-ws-uid` 和合法 `x-ws-uid-sig`（HMAC-SHA256(uid)，小写 hex）。密钥未配置、UID 缺失、签名无效或连接不来自 loopback 时，不接受网关身份；仍可使用管理令牌登录。网关负责在转发前删除客户端自报身份头，基于真实会话重写，并限制哪些已登录用户可以访问本服务。应用退出返回令牌登录页，不注销网关会话；刷新后会重新尝试网关登录。
 
 如果手动复制 `.env.example`，必须替换令牌占位值，否则服务拒绝启动。Bun 自动加载 `.env`；进程环境变量优先。正式运行用 `bun run start`。
 
@@ -65,6 +67,7 @@ bun run dev
 | 名称 | 默认值 / 要求 |
 | --- | --- |
 | `ADMIN_TOKEN` | 必填，至少 24 个字符，建议使用 setup 生成的 256 位随机令牌 |
+| `WS_AUTH_UID_SECRET` | 可选，与本机 OSG 网关共享的签名密钥；配置后接受本机连接的合法网关认证头 |
 | `HOST` / `PORT` | `127.0.0.1` / `3000` |
 | `SITE_CONFIG` | `sites.json`；缺少文件时以空站点启动，首次网页保存时创建 |
 | `DATABASE_PATH` | `data/analytics.sqlite` |
@@ -76,10 +79,10 @@ bun run dev
 将实际网站 origin 加入站点配置，并在网站 HTML 中插入：
 
 ```html
-<script defer src="https://stats.example.com/mazda@0.1.0" data-site="my-blog"></script>
+<script defer src="https://stats.example.com/mazda@0.1.1" data-site="my-blog"></script>
 ```
 
-`/mazda@0.1.0` 固定使用该版本；看板生成的接入代码也固定到当前版本。希望自动跟随最新版时可使用无版本地址：
+`/mazda@0.1.1` 固定使用该版本；看板生成的接入代码也固定到当前版本。希望自动跟随最新版时可使用无版本地址：
 
 ```html
 <script defer src="https://stats.example.com/mazda" data-site="my-blog"></script>
@@ -90,7 +93,7 @@ bun run dev
 脚本自动采集首次展示、History 路由路径变化、前进后退以及 BFCache 恢复。仅查询参数或 hash 变化不增加 PV。SPA 自动监听在 History 调用后立即读取路径；复杂框架可关闭自动模式，在路由完成后显式调用：
 
 ```html
-<script defer src="https://stats.example.com/mazda@0.1.0" data-site="my-blog" data-auto="false"></script>
+<script defer src="https://stats.example.com/mazda@0.1.1" data-site="my-blog" data-auto="false"></script>
 ```
 
 ```js
@@ -146,7 +149,7 @@ Content-Type: text/plain;charset=UTF-8
 
 成功响应为 `{"accepted":1,"duplicates":0}`。最多 20 条/批、32 KiB/请求；服务端先校验整批，任一事件无效时不写入任何事件。重复事件在明细保留期内按 `(site_id, event_id)` 去重，过期后不保证去重。数据库事务提交后才返回成功。
 
-管理看板位于 `/admin`（同时支持 `/admin/`），页面脚本、样式、可选验证页和管理接口全部位于 `/admin/` 下。网关统一鉴权时需同时匹配精确路径 `/admin` 和前缀 `/admin/`，并将原始路径转发给服务，不剥离前缀。应用内管理接口仍要求 `Authorization: Bearer <ADMIN_TOKEN>`，网关需保留该请求头。
+管理看板位于 `/admin`（同时支持 `/admin/`），页面脚本、样式、可选验证页和管理接口全部位于 `/admin/` 下。网关统一鉴权时需同时匹配精确路径 `/admin` 和前缀 `/admin/`，并将原始路径转发给服务，不剥离前缀。应用内管理接口接受 `Authorization: Bearer <ADMIN_TOKEN>` 或经共享密钥校验的本机网关身份，网关需保留 Authorization 并按规范重写身份头。
 
 原 `/`、`/dashboard.js`、`/style.css`、`/demo`、`/demo.js`、`/api/sites` 和 `/api/stats` 不再提供管理功能。公开 `/mazda`、`/mazda@<version>`、兼容地址 `/tracker.js`、`/api/collect`（含 OPTIONS）和 `/health` 可独立放行，网关需允许 SDK 重定向的目标路径。
 
@@ -158,7 +161,7 @@ Content-Type: text/plain;charset=UTF-8
 | `PUT /admin/api/sites` | 请求体为完整站点配置数组（0–100 个，最多 4 MiB）；必须带 GET 返回的 `If-Match: <ETag>`，成功返回新配置及 ETag |
 | `GET /admin/api/stats?site_id=my-blog&days=7` | 合计、每日趋势、页面/来源/设备/事件排行 |
 
-`GET /health` 是公开进程健康检查，返回 `{ "status": "ok", "version": "0.1.0" }`，不返回配置或统计数据。
+`GET /health` 是公开进程健康检查，返回 `{ "status": "ok", "version": "0.1.1" }`，不返回配置或统计数据。
 
 `days` 仅支持 `1`、`7`、`30`，均包含站点当地的今天。排行最多 20 项。来源按 `utm_source → 外部来源域名 → 直接访问/未知` 优先级统计页面浏览量；同一文档的 SPA 页面继承该文档初始推广参数和来源。UTM medium/campaign 保存于清洗后的明细，初版面板不提供对应筛选。
 

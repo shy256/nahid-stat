@@ -1,4 +1,5 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
+import { createAdminAuth } from "./auth";
 import type { Config } from "./config";
 import type { Store } from "./database";
 import { HttpError, normalizeEvent } from "./events";
@@ -37,7 +38,7 @@ async function readJson(req: Request, limit = MAX_BODY): Promise<unknown> {
 export function createApp(config: Config, store: Store, now = () => Date.now()) {
   const siteConfig = createSiteConfig(config);
   const sdk = createSdkHandler();
-  const tokenHash = createHash("sha256").update(config.adminToken).digest();
+  const authorized = createAdminAuth(config);
   const rateSecret = randomBytes(32);
   const buckets = new Map<string, { count: number; expires: number }>();
   const assets: Record<string, [string, string]> = {
@@ -104,9 +105,7 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
         return json({ accepted, duplicates: events.length - accepted });
       }
       if (url.pathname.startsWith("/admin/api/")) {
-        const auth = req.headers.get("authorization") ?? "";
-        const provided = createHash("sha256").update(auth.startsWith("Bearer ") ? auth.slice(7) : "").digest();
-        if (!timingSafeEqual(provided, tokenHash)) throw new HttpError(401, "管理令牌无效");
+        if (!authorized(req, ip)) throw new HttpError(401, "需要有效的管理令牌或网关认证");
         if (url.pathname === "/admin/api/sites") {
           if (req.method === "PUT") {
             await siteConfig.save(await readJson(req, MAX_SITE_CONFIG_BODY), req.headers.get("if-match"));

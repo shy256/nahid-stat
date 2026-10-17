@@ -11,6 +11,7 @@ export interface Config {
   host: string;
   port: number;
   adminToken: string;
+  wsAuthUidSecret?: string;
   databasePath: string;
   retentionDays: number;
   enableDemo: boolean;
@@ -90,6 +91,7 @@ export async function loadConfig(): Promise<Config> {
     host: process.env.HOST ?? "127.0.0.1",
     port: integer(process.env.PORT, 3000, 1, 65535),
     adminToken,
+    wsAuthUidSecret: process.env.WS_AUTH_UID_SECRET || undefined,
     databasePath: process.env.DATABASE_PATH ?? "data/analytics.sqlite",
     retentionDays: integer(process.env.RETENTION_DAYS, 30, 1, 365),
     enableDemo: process.env.ENABLE_DEMO === "true",

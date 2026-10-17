@@ -4,6 +4,7 @@
 
 - `src/index.ts`：运行单实例 Bun HTTP 服务，启动及每小时清理明细，退出时等待请求结束并关闭 SQLite。
 - `src/app.ts`：公开采集接口、管理 Bearer 鉴权、连接来源限流、静态资源。
+- `src/auth.ts`：管理令牌或本机 OSG 签名 UID 鉴权；`WS_AUTH_UID_SECRET` 配置后校验 `x-ws-uid-sig = HMAC-SHA256(uid)` 的小写 hex，常量时间比较，仅接受 socket peer 为 127.0.0.1、::1 或 ::ffff:127.0.0.1；不信任转发 IP 头。密钥不配置则仅接受管理令牌。
 - `src/version.ts`：从 package.json 读取统一项目版本与当前 SDK 路径；`src/sdk.ts` 加载版本快照并处理 SDK 请求。
 - `src/events.ts`：协议校验、白名单属性、路径清洗、时区日期。
 - `src/site-config.ts`：站点配置版本检查、串行原子文件替换及运行时切换。
@@ -24,7 +25,7 @@
 ## 协议与统计口径
 
 - 管理面统一使用 `/admin` 与 `/admin/`：看板在这两个入口提供，脚本和样式为 `/admin/dashboard.js`、`/admin/style.css`；可选验证页及脚本为 `/admin/demo`、`/admin/demo.js`，模拟 SPA 路径也位于 `/admin/demo/article`。旧根路径和旧管理接口不再提供管理功能，不保留别名。
-- 网关鉴权规则需覆盖精确 `/admin` 和前缀 `/admin/`，保留转发路径和 Authorization；应用管理 API 仍校验 Bearer 令牌。公开 `/mazda`、`/mazda@<version>`、兼容地址 `/tracker.js`、`/api/collect`（含 OPTIONS）和 `/health` 可独立放行。页面 shell 本身不含配置或统计数据，由网关按需保护。
+- 网关鉴权规则需覆盖精确 `/admin` 和前缀 `/admin/`，保留转发路径和 Authorization；应用管理 API 接受 Bearer 令牌或合法的本机网关签名 UID。网关必须删除/覆盖客户端自报 `x-ws-uid`、`x-ws-uid-sig` 并基于真实会话重写；签名证明已登录身份，允许访问统计管理面的用户范围由网关限制。公开 `/mazda`、`/mazda@<version>`、兼容地址 `/tracker.js`、`/api/collect`（含 OPTIONS）和 `/health` 可独立放行。页面 shell 本身不含配置或统计数据，由网关按需保护。
 - 项目与 SDK 当前版本统一使用 package.json 的 version；启动日志及 `/health` 返回该版本。`/mazda`、`/tracker.js` 以 302 + no-store 重定向至当前 `/mazda@<version>`，保留查询参数。固定路径只读取对应快照，GET/HEAD 返回一年 immutable 缓存与公开 CORS，未知版本返回 404，不回退；其他请求方法返回 405。
 - `bun run sdk:release` 将 public/tracker.js 生成为 public/sdk/<version>.js，使用独占创建且拒绝同版本不同内容；升级须修改 package.json、生成新快照、保留历史快照后重启。服务启动加载所有快照，缺少当前版本即报错。看板接入代码及 demo 的 `__MAZDA_SDK_PATH__` 在静态资源加载时由服务替换为当前固定路径，不在浏览器读取 package.json。
 - 管理看板“站点配置”使用表单维护 ID、名称、origins、时区、事件及属性白名单、路径脱敏规则，并生成接入代码。支持空站点首建与移除最后一个站点；已有 ID 在表单中只读，移除需二次确认，历史统计保留。
@@ -51,7 +52,7 @@
 - 无持久访客标识或 Cookie；浏览器本地存储仅用于管理员主动设置的排除标记，不传到服务端。原始 IP/UA 不落库。限流键是随机进程密钥 HMAC，只使用连接来源，忽略转发头。
 - 路径删除 query/hash，支持配置脱敏，保守屏蔽邮箱及长令牌；不能识别全部敏感信息，站长需维护业务路径和属性白名单。
 - UTM 为最多 64 字符的类别标签；medium/campaign 仅存明细，初版面板按 source 展示。
-- 管理接口需 Bearer 随机令牌，不开放查询 CORS；公开管理 shell 无统计数据；令牌不放 URL、日志或浏览器持久存储。
+- 管理接口需 Bearer 随机令牌或经共享密钥校验的本机网关身份，不开放查询 CORS；公开管理 shell 无统计数据；令牌、签名密钥不放 URL、日志或浏览器持久存储。看板启动通过同源请求自动尝试网关登录，不发送空 Bearer；失败保留令牌登录表单。退出清理当前页面状态，不注销网关会话，刷新重新尝试自动登录。
 - 网页保存站点配置立即生效，无需重启；手工改文件需重启。ID 和时区修改不会重写历史归属及日期，已接收请求不会被追溯修改。
 
 ## 验证与限制
@@ -60,8 +61,10 @@
 
 `tests/site-config.test.ts` 覆盖鉴权、版本冲突、并发保存、无效配置、写盘失败、外部修改保护、空配置、即时采集切换和文件重载；修改配置流程时优先运行该文件。
 
+`tests/auth.test.ts` 覆盖 OSG UID 签名、错误/缺失/重复身份头、外部连接伪造转发头、未配置密钥时拒绝、原有 Bearer 兼容，以及真实 HTTP 配置读写、ETag 冲突和配置落盘后的新进程重载。
+
 `tests/sdk.test.ts` 覆盖固定版本/CORS/HEAD/缓存、无版本跳转、未知版本、升级保留旧版、快照防覆盖和当前快照缺失；`tests/app.test.ts` 用真实 HTTP 验证重定向跟随及看板接入路径，`tests/tracker.test.ts` 执行当前版本快照。SDK 源码与当前快照须一致，修改后按版本流程重新生成。
 
 显式同步事务规避本机 Bun 1.3.5 db.transaction 内部语句关闭问题，事务内禁止 await。变更后必须验证回滚与文件句柄释放。
 
-初版为本机默认监听的单实例服务，无账户体系、跨维度筛选或公网部署配置。Origin 校验不能防伪造；代理连接共享应用限流，公网接入需在可信边界按真实客户端限流；UA 机器人过滤和设备识别仅为启发式。
+初版为本机默认监听的单实例服务，无账户体系或跨维度筛选；实际部署配置、状态和运维记录仅保存在根目录 `_internal/`。Origin 校验不能防伪造；代理连接共享应用限流，公网接入需在可信边界按真实客户端限流；UA 机器人过滤和设备识别仅为启发式。

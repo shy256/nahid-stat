@@ -24,3 +24,6 @@ data/
 sites.json
 coverage/
 .tmp/
+
+# 仅本地保存的部署文档与记录
+/_internal/

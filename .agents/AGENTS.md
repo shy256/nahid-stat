@@ -7,7 +7,7 @@
 - 仓库根目录为 `J:\mazda`；文档和命令中的相对路径均以仓库根目录为基准，Markdown 链接则以所在文件为基准。
 - 当前为基于 Bun、TypeScript、SQLite 的轻量个人网站统计服务，运行时无第三方依赖；开发类型依赖见 `package.json`。
 - 服务入口 `src/index.ts`，浏览器脚本与管理看板位于 `public/`，配置、接口、数据口径和已知限制见 [统计模块](./modules/analytics.md)。
-- 默认不持久识别访客，初版统计 PV 和事件次数，不计算 UV、会话或跳出率；未发布或部署。
+- 默认不持久识别访客，初版统计 PV 和事件次数，不计算 UV、会话或跳出率；部署状态与操作记录见本地 `_internal/`。
 
 ## 文档地图
 
@@ -20,8 +20,11 @@
 | [dbg.md](./dbg.md) | 最小复现、浏览器调试、WSL Redis | 调试相关问题时 |
 | [modules/analytics.md](./modules/analytics.md) | 采集协议、统计口径、存储与边界 | 修改采集、接口、数据库或看板时 |
 | [memory/archive/README.md](./memory/archive/README.md) | 历史记忆归档与检索约定 | 热索引未命中且需要历史背景时 |
+| `_internal/`（仓库根目录，仅本地） | 部署说明、操作记录与验证结果 | 部署相关工作时；整个目录由 Git 忽略，不提交或推送至 GitHub |
 
 后续按实际需要新增专题文档，例如 `.agents/modules/<module>.md`。创建专题文档时，必须补充本表或项目地图中的入口，避免形成无人知晓的文档。
+
+`_internal/` 不随克隆分发，首次使用时在仓库根目录自行创建；入口为 `_internal/README.md`，部署记录写入 `_internal/deployments.md`。公共文档仅登记目录用途，不复制内部部署内容。该目录仍遵守敏感信息红线，凭据仅记录配置项名称或安全存储位置。
 
 ## 工作流程
 

@@ -30,13 +30,13 @@ function logout() {
   ["pages", "sources", "devices", "events", "chart", "admin-links"].forEach((id) => $(id).replaceChildren());
   status("");
 }
-async function api(path, options = {}) {
+async function api(path, options = {}, resetOnUnauthorized = true) {
   const currentSession = session;
-  const response = await fetch(path, { ...options, headers: { Authorization: "Bearer " + token, ...options.headers }, cache: "no-store" });
+  const response = await fetch(path, { ...options, headers: { ...(token ? { Authorization: "Bearer " + token } : {}), ...options.headers }, credentials: "same-origin", cache: "no-store" });
   const data = await response.json();
   if (currentSession !== session) throw new Error("登录状态已改变");
   if (!response.ok) {
-    if (response.status === 401) logout();
+    if (response.status === 401 && resetOnUnauthorized) logout();
     throw new Error(data.error || "请求失败");
   }
   if (path === "/admin/api/sites") sitesVersion = response.headers.get("ETag") || "";
@@ -253,15 +253,14 @@ async function load() {
     $("trend-empty").hidden = data.totals.pageviews > 0;
     $("chart-frame").hidden = data.totals.pageviews === 0;
     status("更新于 " + new Date().toLocaleTimeString("zh-CN"));
-  } catch (error) { if (current === revision || !token) status(error.message, true); }
+  } catch (error) { if (current === revision) status(error.message, true); }
 }
-$("login-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
+async function login(manual = false) {
   const currentSession = ++session;
-  token = $("token").value;
-  status("正在连接…");
+  token = manual ? $("token").value : "";
+  if (manual) status("正在连接…");
   try {
-    const loaded = await api("/admin/api/sites");
+    const loaded = await api("/admin/api/sites", {}, false);
     if (currentSession !== session) return;
     sites = loaded;
     siteOptions();
@@ -270,7 +269,13 @@ $("login-form").addEventListener("submit", async (event) => {
     $("dashboard").hidden = false;
     if (!sites.length) { editSite(null); showSettings(true); }
     await load();
-  } catch (error) { if (currentSession === session || !token) { token = ""; status(error.message, true); } }
+  } catch (error) {
+    if (currentSession === session) { token = ""; if (manual) status(error.message, true); }
+  }
+}
+$("login-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  void login(true);
 });
 $("configure").addEventListener("click", () => {
   if (settingsBusy) return;
@@ -335,3 +340,4 @@ $("site").addEventListener("change", load);
 $("days").addEventListener("change", load);
 $("refresh").addEventListener("click", load);
 $("logout").addEventListener("click", logout);
+void login();
