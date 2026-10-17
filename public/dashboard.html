@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mazda · 网站统计</title>
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/dashboard.js"></script>
+</head>
+<body>
+  <!-- Material Symbols by Google, Apache-2.0. Source: https://yesicon.app/zh-Hans/material-symbols -->
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><symbol id="icon-monitoring-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M3.288 20.713Q3 20.425 3 20v-1q0-.425.288-.712T4 18t.713.288T5 19v1q0 .425-.288.713T4 21t-.712-.288m4 0Q7 20.426 7 20v-5.5q0-.425.288-.712T8 13.5t.713.288T9 14.5V20q0 .425-.288.713T8 21t-.712-.288m4 0Q11 20.426 11 20v-3.5q0-.425.288-.712T12 15.5t.713.288t.287.712V20q0 .425-.288.713T12 21t-.712-.288m4 0Q15 20.426 15 20v-5q0-.425.288-.712T16 14t.713.288T17 15v5q0 .425-.288.713T16 21t-.712-.288m4 0Q19 20.426 19 20v-9q0-.425.288-.712T20 10t.713.288T21 11v9q0 .425-.288.713T20 21t-.712-.288M14 11.975q-.4 0-.763-.15t-.662-.425L10 8.825l-5.3 5.3q-.3.3-.712.288t-.713-.313q-.275-.3-.262-.712T3.3 12.7l5.275-5.275q.3-.3.663-.437T10 6.85t.775.138t.65.437L14 10l5.3-5.3q.3-.3.713-.288t.712.313q.275.3.263.713t-.288.687L15.425 11.4q-.275.275-.65.425t-.775.15"/></symbol>
+<symbol id="icon-refresh-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M12 20q-3.35 0-5.675-2.325T4 12t2.325-5.675T12 4q1.725 0 3.3.712T18 6.75V5q0-.425.288-.712T19 4t.713.288T20 5v5q0 .425-.288.713T19 11h-5q-.425 0-.712-.288T13 10t.288-.712T14 9h3.2q-.8-1.4-2.187-2.2T12 6Q9.5 6 7.75 7.75T6 12t1.75 4.25T12 18q1.7 0 3.113-.862t2.187-2.313q.2-.35.563-.487t.737-.013q.4.125.575.525t-.025.75q-1.025 2-2.925 3.2T12 20"/></symbol>
+<symbol id="icon-logout-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M5 21q-.825 0-1.412-.587T3 19V5q0-.825.588-1.412T5 3h6q.425 0 .713.288T12 4t-.288.713T11 5H5v14h6q.425 0 .713.288T12 20t-.288.713T11 21zm12.175-8H10q-.425 0-.712-.288T9 12t.288-.712T10 11h7.175L15.3 9.125q-.275-.275-.275-.675t.275-.7t.7-.313t.725.288L20.3 11.3q.3.3.3.7t-.3.7l-3.575 3.575q-.3.3-.712.288t-.713-.313q-.275-.3-.262-.712t.287-.688z"/></symbol>
+<symbol id="icon-arrow-forward-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M16.175 13H5q-.425 0-.712-.288T4 12t.288-.712T5 11h11.175l-4.9-4.9q-.3-.3-.288-.7t.313-.7q.3-.275.7-.288t.7.288l6.6 6.6q.15.15.213.325t.062.375t-.062.375t-.213.325l-6.6 6.6q-.275.275-.687.275T11.3 19.3q-.3-.3-.3-.712t.3-.713z"/></symbol>
+<symbol id="icon-language-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M8.125 21.213q-1.825-.788-3.187-2.15t-2.15-3.188T2 11.988t.788-3.875t2.15-3.175t3.187-2.15T12.013 2t3.875.788t3.175 2.15t2.15 3.175t.787 3.875t-.787 3.887t-2.15 3.188t-3.175 2.15t-3.875.787t-3.888-.787M12 19.95q.65-.9 1.125-1.875T13.9 16h-3.8q.3 1.1.775 2.075T12 19.95m-2.6-.4q-.45-.825-.787-1.713T8.05 16H5.1q.725 1.25 1.813 2.175T9.4 19.55m5.2 0q1.4-.45 2.488-1.375T18.9 16h-2.95q-.225.95-.562 1.838T14.6 19.55M4.25 14h3.4q-.075-.5-.112-.987T7.5 12t.038-1.012T7.65 10h-3.4q-.125.5-.187.988T4 12t.063 1.013t.187.987m5.4 0h4.7q.075-.5.113-.987T14.5 12t-.038-1.012T14.35 10h-4.7q-.075.5-.112.988T9.5 12t.038 1.013t.112.987m6.7 0h3.4q.125-.5.188-.987T20 12t-.062-1.012T19.75 10h-3.4q.075.5.113.988T16.5 12t-.038 1.013t-.112.987m-.4-6h2.95q-.725-1.25-1.812-2.175T14.6 4.45q.45.825.788 1.713T15.95 8M10.1 8h3.8q-.3-1.1-.775-2.075T12 4.05q-.65.9-1.125 1.875T10.1 8m-5 0h2.95q.225-.95.563-1.838T9.4 4.45Q8 4.9 6.912 5.825T5.1 8"/></symbol>
+<symbol id="icon-calendar-today-outline-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M5 22q-.825 0-1.412-.587T3 20V6q0-.825.588-1.412T5 4h1V3q0-.425.288-.712T7 2t.713.288T8 3v1h8V3q0-.425.288-.712T17 2t.713.288T18 3v1h1q.825 0 1.413.588T21 6v14q0 .825-.587 1.413T19 22zm0-2h14V10H5zM5 8h14V6H5zm0 0V6z"/></symbol>
+<symbol id="icon-visibility-outline-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M15.188 14.688Q16.5 13.375 16.5 11.5t-1.312-3.187T12 7T8.813 8.313T7.5 11.5t1.313 3.188T12 16t3.188-1.312m-5.1-1.276Q9.3 12.625 9.3 11.5t.788-1.912T12 8.8t1.913.788t.787 1.912t-.787 1.913T12 14.2t-1.912-.787m-4.2 3.787q-2.763-1.8-4.363-4.75q-.125-.225-.187-.462t-.063-.488t.063-.488t.187-.462q1.6-2.95 4.363-4.75T12 4t6.113 1.8t4.362 4.75q.125.225.188.463t.062.487t-.062.488t-.188.462q-1.6 2.95-4.362 4.75T12 19t-6.113-1.8m11.3-1.687Q19.55 14.025 20.8 11.5q-1.25-2.525-3.613-4.012T12 6T6.813 7.488T3.2 11.5q1.25 2.525 3.613 4.013T12 17t5.188-1.487"/></symbol>
+<symbol id="icon-ads-click-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M12 8q-1.65 0-2.825 1.175T8 12q0 1.125.563 2.075t1.562 1.475q.4.2.563.587t-.013.788q-.175.35-.525.525t-.7 0q-1.575-.75-2.512-2.225T6 12q0-2.5 1.75-4.25T12 6q1.775 0 3.263.938T17.475 9.5q.15.35-.012.7t-.513.5q-.4.175-.8 0t-.6-.575q-.525-1-1.475-1.562T12 8m0-4Q8.65 4 6.325 6.325T4 12q0 3.15 2.075 5.4t5.2 2.55q.425.05.737.375t.288.75t-.313.7t-.712.25q-1.95-.125-3.638-.975t-2.95-2.213t-1.975-3.125T2 12q0-2.075.788-3.9t2.137-3.175T8.1 2.788T12 2q3.925 0 6.838 2.675t3.187 6.6q.05.4-.237.688t-.713.312t-.762-.275t-.388-.725q-.375-3-2.612-5.137T12 4m7.55 17.5l-3.3-3.275l-.75 2.275q-.125.35-.475.338t-.475-.363L12.275 12.9q-.1-.275.125-.5t.5-.125l7.575 2.275q.35.125.363.475t-.338.475l-2.275.75l3.3 3.3q.425.425.425.975t-.425.975t-.987.425t-.988-.425"/></symbol>
+<symbol id="icon-description-outline-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M9 18h6q.425 0 .713-.288T16 17t-.288-.712T15 16H9q-.425 0-.712.288T8 17t.288.713T9 18m0-4h6q.425 0 .713-.288T16 13t-.288-.712T15 12H9q-.425 0-.712.288T8 13t.288.713T9 14m-3 8q-.825 0-1.412-.587T4 20V4q0-.825.588-1.412T6 2h7.175q.4 0 .763.15t.637.425l4.85 4.85q.275.275.425.638t.15.762V20q0 .825-.587 1.413T18 22zm7-14V4H6v16h12V9h-4q-.425 0-.712-.288T13 8M6 4v5zv16z"/></symbol>
+<symbol id="icon-devices-outline-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M11 20H3q-.425 0-.712-.288T2 19t.288-.712T3 18h8q.425 0 .713.288T12 19t-.288.713T11 20m-6-3q-.825 0-1.412-.587T3 15V6q0-.825.588-1.412T5 4h15q.425 0 .713.288T21 5t-.288.713T20 6H5v9h6q.425 0 .713.288T12 16t-.288.713T11 17zm15 1v-8h-4v8zm-4.5 2q-.625 0-1.062-.437T14 18.5v-9q0-.625.438-1.062T15.5 8h5q.625 0 1.063.438T22 9.5v9q0 .625-.437 1.063T20.5 20zm2.5-7.5q.325 0 .538-.225t.212-.525q0-.325-.213-.537T18 11q-.3 0-.525.213t-.225.537q0 .3.225.525T18 12.5m0 1.5"/></symbol>
+<symbol id="icon-link-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M7 17q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h3q.425 0 .713.288T11 8t-.288.713T10 9H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h3q.425 0 .713.288T11 16t-.288.713T10 17zm2-4q-.425 0-.712-.288T8 12t.288-.712T9 11h6q.425 0 .713.288T16 12t-.288.713T15 13zm5 4q-.425 0-.712-.288T13 16t.288-.712T14 15h3q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-3q-.425 0-.712-.288T13 8t.288-.712T14 7h3q2.075 0 3.538 1.463T22 12t-1.463 3.538T17 17z"/></symbol></defs></svg>
+  <main>
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="Mazda Analytics 首页">m<span class="brand-dot">.</span><span>Mazda Analytics</span></a>
+      <span class="header-label">网站统计</span>
+    </header>
+    <section id="login" class="login-card" aria-labelledby="login-title">
+      <svg class="login-icon" aria-hidden="true"><use href="#icon-monitoring-rounded"></use></svg>
+      <h1 id="login-title">数据看板</h1>
+      <form id="login-form">
+        <label for="token">管理令牌</label>
+        <input id="token" type="password" autocomplete="off" required placeholder="输入管理令牌">
+        <button type="submit">进入看板<svg class="icon" aria-hidden="true"><use href="#icon-arrow-forward-rounded"></use></svg></button>
+      </form>
+    </section>
+    <section id="dashboard" hidden aria-labelledby="site-title">
+      <div class="title-row">
+        <div class="page-title"><h1 id="site-title">网站概览</h1><p id="range-label"></p></div>
+        <div class="controls">
+          <div class="select-field"><svg class="icon" aria-hidden="true"><use href="#icon-language-rounded"></use></svg><label class="sr-only" for="site">站点</label><select id="site"></select></div>
+          <div class="select-field"><svg class="icon" aria-hidden="true"><use href="#icon-calendar-today-outline-rounded"></use></svg><label class="sr-only" for="days">时间范围</label><select id="days"><option value="1">今天</option><option value="7" selected>近 7 天</option><option value="30">近 30 天</option></select></div>
+          <button id="refresh" class="icon-button secondary" type="button" aria-label="刷新" title="刷新"><svg class="icon" aria-hidden="true"><use href="#icon-refresh-rounded"></use></svg></button>
+          <button id="logout" class="icon-button text-button" type="button" aria-label="退出" title="退出"><svg class="icon" aria-hidden="true"><use href="#icon-logout-rounded"></use></svg></button>
+        </div>
+      </div>
+      <details class="admin-testing">
+        <summary>管理员测试访问</summary>
+        <p>在要测试的网站打开标记链接，此浏览器的访问和事件将不计入统计。各域名需分别标记。</p>
+        <div id="admin-links"></div>
+      </details>
+      <div class="metrics">
+        <article class="metric"><div class="metric-label"><svg class="icon" aria-hidden="true"><use href="#icon-visibility-outline-rounded"></use></svg><span>页面浏览量</span><span class="metric-unit">PV</span></div><strong id="pv">—</strong></article>
+        <article class="metric"><div class="metric-label"><svg class="icon" aria-hidden="true"><use href="#icon-ads-click-rounded"></use></svg><span>关键事件</span></div><strong id="event-total">—</strong></article>
+      </div>
+      <article class="panel trend-panel">
+        <div class="panel-heading"><h2><svg class="icon" aria-hidden="true"><use href="#icon-monitoring-rounded"></use></svg>访问趋势</h2><span class="chart-key">PV</span></div>
+        <div id="chart-frame" class="chart-frame">
+          <div id="chart-scale" class="chart-scale" aria-hidden="true"></div>
+          <div class="chart-plot">
+            <div class="chart-grid" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+            <div id="chart" class="chart" role="img" aria-label="每日页面浏览量柱状图"></div>
+            <div class="chart-axis"><span id="axis-start"></span><span id="axis-end"></span></div>
+          </div>
+        </div>
+        <p id="trend-empty" class="empty trend-empty" hidden>暂无数据</p>
+      </article>
+      <div class="panel-grid">
+        <article class="panel"><div class="panel-heading"><h2><svg class="icon" aria-hidden="true"><use href="#icon-description-outline-rounded"></use></svg>热门页面</h2><span class="column-label">浏览量</span></div><div id="pages"></div></article>
+        <article class="panel"><div class="panel-heading"><h2><svg class="icon" aria-hidden="true"><use href="#icon-link-rounded"></use></svg>引流来源</h2><span class="column-label">浏览量</span></div><div id="sources"></div></article>
+        <article class="panel"><div class="panel-heading"><h2><svg class="icon" aria-hidden="true"><use href="#icon-devices-outline-rounded"></use></svg>设备分布</h2><span class="column-label">浏览量</span></div><div id="devices"></div></article>
+        <article class="panel"><div class="panel-heading"><h2><svg class="icon" aria-hidden="true"><use href="#icon-ads-click-rounded"></use></svg>关键事件</h2><span class="column-label">次数</span></div><div id="events"></div></article>
+      </div>
+    </section>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </main>
+</body>
+</html>

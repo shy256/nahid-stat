@@ -1,0 +1,14 @@
+[
+  {
+    "id": "my-blog",
+    "name": "我的博客",
+    "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+    "timezone": "Asia/Shanghai",
+    "events": {
+      "download": ["file_type"],
+      "subscribe": [],
+      "outbound": ["destination"]
+    },
+    "redactPaths": ["^/users/[^/]+", "^/reset/[^/]+"]
+  }
+]

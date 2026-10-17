@@ -1,0 +1,26 @@
+# 本地凭据：仅允许不包含真实密钥的示例模板
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.key
+
+# 本地系统与编辑临时文件
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# Bun / SQLite / 本地配置
+node_modules/
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+sites.json
+coverage/
+.tmp/
