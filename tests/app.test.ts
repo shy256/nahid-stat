@@ -9,6 +9,7 @@ import { createApp } from "../src/app";
 import { validateSites, type Config } from "../src/config";
 import { createStore, type Store } from "../src/database";
 import { dateRange, siteDay } from "../src/events";
+import { SDK_PATH, VERSION } from "../src/version";
 
 const now = Date.parse("2026-10-16T16:30:00Z");
 const origin = "https://blog.example.com";
@@ -43,9 +44,9 @@ function admin(path: string, token = config.adminToken) {
 describe("采集与统计", () => {
   test("站点标记所需的 origins 仅通过鉴权管理接口返回", async () => {
     const { app } = setup();
-    expect((await app(new Request("http://localhost/api/sites"))).status).toBe(401);
-    const sites = await (await app(admin("/api/sites"))).json();
-    expect(sites[0]).toEqual({ id: "blog", name: "博客", timezone: "Asia/Shanghai", origins: [origin] });
+    expect((await app(new Request("http://localhost/admin/api/sites"))).status).toBe(401);
+    const sites = await (await app(admin("/admin/api/sites"))).json();
+    expect(sites[0]).toEqual(config.sites[0]);
     expect(JSON.stringify(sites)).not.toContain(config.adminToken);
   });
   test("去重、来源、设备、查询参数清洗和站点时区", async () => {
@@ -53,7 +54,7 @@ describe("采集与统计", () => {
     const item = event();
     expect(await (await app(collect([item, item]))).json()).toEqual({ accepted: 1, duplicates: 1 });
     expect(await (await app(collect([item]))).json()).toEqual({ accepted: 0, duplicates: 1 });
-    const stats = await (await app(admin("/api/stats?site_id=blog&days=7"))).json();
+    const stats = await (await app(admin("/admin/api/stats?site_id=blog&days=7"))).json();
     expect(stats.totals).toEqual({ pageviews: 1, events: 0 });
     expect(stats.range.to).toBe("2026-10-17");
     expect(stats.trend).toHaveLength(7);
@@ -70,7 +71,7 @@ describe("采集与统计", () => {
   test("站内来源归为直接访问，推广来源优先", async () => {
     const { app } = setup();
     await app(collect([event({ referrer_host: "blog.example.com" }), event({ utm_source: "newsletter" })]));
-    const stats = await (await app(admin("/api/stats?site_id=blog&days=1"))).json();
+    const stats = await (await app(admin("/admin/api/stats?site_id=blog&days=1"))).json();
     expect(stats.sources).toEqual([{ value: "(direct)", count: 1 }, { value: "newsletter", count: 1 }]);
   });
 
@@ -81,7 +82,7 @@ describe("采集与统计", () => {
     const row = store.db.query<{ props: string; path: string }, []>("SELECT props, path FROM events").get()!;
     expect(JSON.parse(row.props)).toEqual({ file_type: "pdf" });
     expect(row.path).toBe("/[redacted]/file");
-    const stats = await (await app(admin("/api/stats?site_id=blog&days=1"))).json();
+    const stats = await (await app(admin("/admin/api/stats?site_id=blog&days=1"))).json();
     expect(stats.totals).toEqual({ pageviews: 0, events: 1 });
     expect(stats.events).toEqual([{ value: "download", count: 1 }]);
   });
@@ -135,16 +136,51 @@ describe("采集与统计", () => {
 });
 
 describe("接口边界", () => {
+  test("管理面仅在 /admin 下提供，旧地址与相似前缀不暴露管理功能", async () => {
+    const { app, store } = setup();
+    for (const path of ["/admin/demo", "/admin/demo.js"]) {
+      expect((await app(new Request(`http://localhost${path}`))).status).toBe(404);
+    }
+    const withDemo = createApp({ ...config, enableDemo: true }, store, () => now);
+    for (const [path, contentType] of [
+      ["/admin", "text/html"], ["/admin/", "text/html"],
+      ["/admin/dashboard.js", "text/javascript"], ["/admin/style.css", "text/css"],
+      ["/admin/demo", "text/html"], ["/admin/demo.js", "text/javascript"],
+    ]) {
+      const response = await withDemo(new Request(`http://localhost${path}`));
+      expect(response.status).toBe(200);
+      expect(response.headers.get("Content-Type")).toContain(contentType!);
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
+    }
+    for (const path of ["/", "/dashboard.js", "/style.css", "/demo", "/demo.js", "/api/sites", "/api/stats?site_id=blog", "/administrator", "/admin-api/sites"]) {
+      expect((await withDemo(new Request(`http://localhost${path}`))).status).toBe(404);
+      expect((await withDemo(admin(path))).status).toBe(404);
+    }
+    const demo = await (await withDemo(new Request("http://localhost/admin/demo"))).text();
+    expect(demo).toContain(`src="${SDK_PATH}"`);
+    expect(demo).not.toContain("__MAZDA_SDK_PATH__");
+    for (const path of ["/admin/api/sites", "/admin/api/stats?site_id=blog"]) {
+      expect((await app(new Request(`http://localhost${path}`))).status).toBe(401);
+      expect((await app(admin(path, "wrong"))).status).toBe(401);
+    }
+    const tracker = await app(new Request("http://localhost/tracker.js"));
+    expect(tracker.status).toBe(302);
+    expect(tracker.headers.get("Location")).toBe(SDK_PATH);
+    expect(tracker.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(tracker.headers.get("Cache-Control")).toBe("no-store");
+    expect(await (await app(new Request("http://localhost/health"))).json()).toEqual({ status: "ok", version: VERSION });
+  });
+
   test("管理接口鉴权，采集站点来源隔离，CORS 正确", async () => {
     const { app } = setup();
-    expect((await app(admin("/api/sites", "wrong"))).status).toBe(401);
-    expect((await app(admin("/api/sites"))).status).toBe(200);
+    expect((await app(admin("/admin/api/sites", "wrong"))).status).toBe(401);
+    expect((await app(admin("/admin/api/sites"))).status).toBe(200);
     expect((await app(collect([event()], "blog", "https://evil.example.com"))).status).toBe(403);
     expect((await app(collect([event()], "other", origin))).status).toBe(403);
     const response = await app(collect([event()]));
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(origin);
     expect(response.headers.get("Access-Control-Allow-Credentials")).toBeNull();
-    expect((await app(admin("/api/stats?site_id=other"))).headers.get("Access-Control-Allow-Origin")).toBeNull();
+    expect((await app(admin("/admin/api/stats?site_id=other"))).headers.get("Access-Control-Allow-Origin")).toBeNull();
     const preflight = await app(new Request("http://localhost/api/collect", { method: "OPTIONS", headers: { Origin: origin } }));
     expect(preflight.status).toBe(204);
     expect(preflight.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type");
@@ -180,23 +216,49 @@ describe("接口边界", () => {
     request.headers.set("User-Agent", "Googlebot/2.1");
     expect((await (await app(request)).json()).filtered).toBe(true);
     expect(store.stats(config.sites[0], 1, now).totals.pageviews).toBe(0);
-    expect((await app(admin("/api/stats?site_id=blog&days=999"))).status).toBe(400);
-    expect((await app(admin("/api/stats?site_id=missing"))).status).toBe(404);
-    expect((await app(new Request("http://localhost/demo"))).status).toBe(404);
-    const tracker = await app(new Request("http://localhost/tracker.js"));
+    expect((await app(admin("/admin/api/stats?site_id=blog&days=999"))).status).toBe(400);
+    expect((await app(admin("/admin/api/stats?site_id=missing"))).status).toBe(404);
+    expect((await app(new Request("http://localhost/admin/demo"))).status).toBe(404);
+    const tracker = await app(new Request(`http://localhost${SDK_PATH}`));
     expect(tracker.headers.get("Content-Type")).toContain("javascript");
     expect(await tracker.text()).toContain("window.mazda");
   });
 
-  test("真实 HTTP 服务可接收上报并鉴权查询", async () => {
+  test("真实 HTTP 服务可加载管理页面及引用资源、接收公开上报并鉴权查询", async () => {
     const { app } = setup();
     const server = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: (req) => app(req) });
     try {
+      for (const path of ["/admin", "/admin/"]) {
+        const page = await fetch(new URL(path, server.url));
+        expect(page.status).toBe(200);
+        const html = await page.text();
+        const resources = Array.from(html.matchAll(/(?:src|href)="(\/[^\"]+)"/g), (match) => match[1]!);
+        expect(resources).toContain("/admin/dashboard.js");
+        expect(resources).toContain("/admin/style.css");
+        for (const resource of resources) {
+          expect(resource === "/admin" || resource.startsWith("/admin/")).toBe(true);
+          expect((await fetch(new URL(resource, server.url))).status).toBe(200);
+        }
+      }
+      for (const path of ["/mazda", "/tracker.js"]) {
+        const redirect = await fetch(new URL(`${path}?test=1`, server.url), { redirect: "manual" });
+        expect(redirect.status).toBe(302);
+        expect(redirect.headers.get("Location")).toBe(`${SDK_PATH}?test=1`);
+        const sdk = await fetch(new URL(path, server.url));
+        expect(sdk.status).toBe(200);
+        expect(new URL(sdk.url).pathname).toBe(SDK_PATH);
+        expect(sdk.headers.get("Content-Type")).toContain("javascript");
+        expect(await sdk.text()).toBe(await Bun.file(new URL("../public/tracker.js", import.meta.url)).text());
+      }
+      const dashboard = await (await fetch(new URL("/admin/dashboard.js", server.url))).text();
+      expect(dashboard).toContain(`new URL("${SDK_PATH}", location.href)`);
+      expect(dashboard).not.toContain("__MAZDA_SDK_PATH__");
+      expect((await fetch(new URL("/mazda@999.0.0", server.url))).status).toBe(404);
       const response = await fetch(new URL("/api/collect", server.url), {
         method: "POST", headers: { Origin: origin }, body: JSON.stringify({ site_id: "blog", events: [event()] }),
       });
       expect((await response.json()).accepted).toBe(1);
-      const stats = await fetch(new URL("/api/stats?site_id=blog&days=1", server.url), { headers: { Authorization: `Bearer ${config.adminToken}` } });
+      const stats = await fetch(new URL("/admin/api/stats?site_id=blog&days=1", server.url), { headers: { Authorization: `Bearer ${config.adminToken}` } });
       expect((await stats.json()).totals.pageviews).toBe(1);
     } finally { await server.stop(true); }
   });

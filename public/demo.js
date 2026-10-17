@@ -9,8 +9,8 @@ document.getElementById("download").addEventListener("click", async () => {
   status.textContent = "已尝试发送 download 事件，请在看板确认送达。";
 });
 document.getElementById("route").addEventListener("click", () => {
-  history.pushState({}, "", "/demo/article?secret=should-not-be-collected");
-  status.textContent = window.mazda?.isAdmin ? "已切换路由，管理员测试访问不计入统计。刷新请返回 /demo。" : "已切换路由；仅上报 /demo/article，丢弃查询参数。刷新请返回 /demo。";
+  history.pushState({}, "", "/admin/demo/article?secret=should-not-be-collected");
+  status.textContent = window.mazda?.isAdmin ? "已切换路由，管理员测试访问不计入统计。刷新请返回 /admin/demo。" : "已切换路由；仅上报 /admin/demo/article，丢弃查询参数。刷新请返回 /admin/demo。";
 });
 document.getElementById("same-route").addEventListener("click", () => {
   history.replaceState({}, "", location.href);

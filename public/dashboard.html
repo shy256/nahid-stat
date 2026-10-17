@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mazda · 网站统计</title>
-  <link rel="stylesheet" href="/style.css">
-  <script defer src="/dashboard.js"></script>
+  <link rel="stylesheet" href="/admin/style.css">
+  <script defer src="/admin/dashboard.js"></script>
 </head>
 <body>
   <!-- Material Symbols by Google, Apache-2.0. Source: https://yesicon.app/zh-Hans/material-symbols -->
@@ -22,7 +22,7 @@
 <symbol id="icon-link-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M7 17q-2.075 0-3.537-1.463T2 12t1.463-3.537T7 7h3q.425 0 .713.288T11 8t-.288.713T10 9H7q-1.25 0-2.125.875T4 12t.875 2.125T7 15h3q.425 0 .713.288T11 16t-.288.713T10 17zm2-4q-.425 0-.712-.288T8 12t.288-.712T9 11h6q.425 0 .713.288T16 12t-.288.713T15 13zm5 4q-.425 0-.712-.288T13 16t.288-.712T14 15h3q1.25 0 2.125-.875T20 12t-.875-2.125T17 9h-3q-.425 0-.712-.288T13 8t.288-.712T14 7h3q2.075 0 3.538 1.463T22 12t-1.463 3.538T17 17z"/></symbol></defs></svg>
   <main>
     <header class="masthead">
-      <a class="brand" href="/" aria-label="Mazda Analytics 首页">m<span class="brand-dot">.</span><span>Mazda Analytics</span></a>
+      <a class="brand" href="/admin" aria-label="Mazda Analytics 首页">m<span class="brand-dot">.</span><span>Mazda Analytics</span></a>
       <span class="header-label">网站统计</span>
     </header>
     <section id="login" class="login-card" aria-labelledby="login-title">
@@ -41,9 +41,36 @@
           <div class="select-field"><svg class="icon" aria-hidden="true"><use href="#icon-language-rounded"></use></svg><label class="sr-only" for="site">站点</label><select id="site"></select></div>
           <div class="select-field"><svg class="icon" aria-hidden="true"><use href="#icon-calendar-today-outline-rounded"></use></svg><label class="sr-only" for="days">时间范围</label><select id="days"><option value="1">今天</option><option value="7" selected>近 7 天</option><option value="30">近 30 天</option></select></div>
           <button id="refresh" class="icon-button secondary" type="button" aria-label="刷新" title="刷新"><svg class="icon" aria-hidden="true"><use href="#icon-refresh-rounded"></use></svg></button>
+          <button id="configure" class="secondary" type="button" aria-expanded="false" aria-controls="site-settings">站点配置</button>
           <button id="logout" class="icon-button text-button" type="button" aria-label="退出" title="退出"><svg class="icon" aria-hidden="true"><use href="#icon-logout-rounded"></use></svg></button>
         </div>
       </div>
+      <section id="site-settings" class="site-settings" hidden aria-labelledby="settings-title">
+        <div class="panel-heading"><h2 id="settings-title">站点配置</h2><button id="settings-close" class="text-button" type="button">收起</button></div>
+        <div class="settings-toolbar">
+          <label class="sr-only" for="settings-site">配置的站点</label><select id="settings-site"></select>
+          <button id="site-new" class="secondary" type="button">新增站点</button>
+          <button id="settings-reload" class="text-button" type="button">重新载入</button>
+        </div>
+        <form id="site-form">
+          <fieldset id="site-fields">
+            <div class="settings-grid">
+              <div class="form-field"><label for="site-id">站点 ID</label><input id="site-id" required maxlength="64" pattern="[a-zA-Z][a-zA-Z0-9_-]{0,63}" placeholder="my-blog" aria-describedby="site-id-help"><small id="site-id-help">字母开头，可含数字、下划线和连字符；创建后不可修改。</small></div>
+              <div class="form-field"><label for="site-name">站点名称</label><input id="site-name" required maxlength="100" placeholder="我的博客"></div>
+              <div class="form-field"><label for="site-origins">允许的域名</label><textarea id="site-origins" rows="3" required placeholder="https://blog.example.com" aria-describedby="site-origins-help"></textarea><small id="site-origins-help">每行一个完整 HTTP(S) 来源，可含端口，不含路径或末尾 /。</small></div>
+              <div class="form-field"><label for="site-timezone">统计时区</label><input id="site-timezone" required list="timezones" placeholder="Asia/Shanghai" aria-describedby="site-timezone-help"><datalist id="timezones"><option value="Asia/Shanghai"></option><option value="UTC"></option><option value="Asia/Tokyo"></option><option value="America/New_York"></option><option value="Europe/London"></option></datalist><small id="site-timezone-help">时区变更只影响后续统计，历史日期不会重新计算。</small></div>
+            </div>
+            <div class="form-field event-settings"><div class="field-heading"><span id="event-rules-label">自定义事件</span><button id="event-add" class="secondary" type="button">添加事件</button></div><div id="event-rules" aria-labelledby="event-rules-label"></div><small>事件名及属性名须以字母开头，可含数字、下划线和连字符。属性以英文逗号分隔；留空表示不接收属性。</small></div>
+            <div class="form-field"><label for="site-redact">路径脱敏规则（可选）</label><textarea id="site-redact" rows="3" placeholder="^/users/[^/]+" aria-describedby="site-redact-help"></textarea><small id="site-redact-help">每行一条正则表达式，匹配内容将被替换。优先使用锚定、无复杂回溯的简单规则。</small></div>
+            <div class="settings-actions"><button id="site-save" type="submit">保存配置</button><button id="site-delete" class="text-button danger" type="button">移除站点</button></div>
+            <div id="delete-confirm" class="delete-confirm" hidden><p>确认移除此站点？采集将立即停止，历史统计数据会保留。</p><button id="delete-yes" class="secondary danger" type="button">确认移除</button><button id="delete-no" class="text-button" type="button">取消</button></div>
+          </fieldset>
+        </form>
+        <p id="settings-status" class="status" role="status" aria-live="polite"></p>
+        <div id="site-integration" class="form-field integration" hidden><label for="site-snippet">接入代码</label><textarea id="site-snippet" rows="3" readonly spellcheck="false"></textarea><small>将代码放入已配置域名的网站 HTML 中；跨域使用时请将脚本地址换成网站可访问的统计服务地址。</small></div>
+      </section>
+      <p id="no-sites" class="empty" hidden>暂无站点，请通过“站点配置”添加网站。</p>
+      <div id="site-stats">
       <details class="admin-testing">
         <summary>管理员测试访问</summary>
         <p>在要测试的网站打开标记链接，此浏览器的访问和事件将不计入统计。各域名需分别标记。</p>
@@ -70,6 +97,7 @@
         <article class="panel"><div class="panel-heading"><h2><svg class="icon" aria-hidden="true"><use href="#icon-link-rounded"></use></svg>引流来源</h2><span class="column-label">浏览量</span></div><div id="sources"></div></article>
         <article class="panel"><div class="panel-heading"><h2><svg class="icon" aria-hidden="true"><use href="#icon-devices-outline-rounded"></use></svg>设备分布</h2><span class="column-label">浏览量</span></div><div id="devices"></div></article>
         <article class="panel"><div class="panel-heading"><h2><svg class="icon" aria-hidden="true"><use href="#icon-ads-click-rounded"></use></svg>关键事件</h2><span class="column-label">次数</span></div><div id="events"></div></article>
+      </div>
       </div>
     </section>
     <p id="status" class="status" role="status" aria-live="polite"></p>

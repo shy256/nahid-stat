@@ -7,8 +7,8 @@
 ```text
 mazda/
 ├── src/                       # 配置、HTTP、事件清洗、SQLite 与启动入口
-├── public/                    # 采集脚本、中文看板、样式与最小 demo
-├── scripts/                   # 初始化与一致性快照备份
+├── public/                    # SDK 源码、sdk/ 版本快照、中文看板、样式与最小 demo
+├── scripts/                   # 初始化、SDK 版本快照生成与一致性快照备份
 ├── tests/                     # 功能、HTTP、SDK、初始化与备份测试
 ├── package.json               # Bun 命令与开发依赖
 ├── bun.lock                   # 锁定的开发依赖
@@ -34,7 +34,7 @@ mazda/
 
 ## 架构与模块登记
 
-唯一业务模块为 [analytics](./modules/analytics.md)，入口 `src/index.ts`。配置、路由、事件、存储分别位于 src/config.ts、app.ts、events.ts、database.ts。运行基线 Bun 1.3.5；TypeScript 5.9.3、@types/bun 1.3.5 仅为开发依赖。运行时无第三方依赖，无 Redis、消息队列或远程服务依赖。协议 v1 为当前实现格式，尚未由用户确认为冻结协议；未发布或部署。
+唯一业务模块为 [analytics](./modules/analytics.md)，入口 `src/index.ts`。配置加载、站点配置持久化、路由、事件、存储分别位于 src/config.ts、site-config.ts、app.ts、events.ts、database.ts。WebUI 可维护站点并热更新，配置持久化到 SITE_CONFIG（默认 sites.json）。运行基线 Bun 1.3.5；TypeScript 5.9.3、@types/bun 1.3.5 仅为开发依赖。运行时无第三方依赖，无 Redis、消息队列或远程服务依赖。协议 v1 为当前实现格式，尚未由用户确认为冻结协议；未发布或部署。
 
 ## 更新时机
 

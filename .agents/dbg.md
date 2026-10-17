@@ -17,9 +17,10 @@
 ### 统计模块最小验证
 
 1. 使用独立测试数据库，将 `.env` 中 `ENABLE_DEMO=true`；示例站点 my-blog 允许 http://127.0.0.1:3000。示例数据会真实写入，不能混入正式数据库。
-2. `bun run start` 后打开 `/demo`；首次展示增加 1 PV，模拟下载增加 1 个 download，切换示例文章增加 1 PV，重复当前路由不增加 PV。
-3. 进入 `/`，输入当前本地服务的管理令牌，核对 2 PV / 1 事件、页面 /demo 与 /demo/article，不含查询参数。检查控制台、7/30 天切换和手机布局。
-4. 在看板展开“管理员测试访问”，核对各域名的标记/取消链接不含令牌。在 `/demo?mazda_admin=1&mazda_site=my-blog` 设置标记，刷新、模拟下载、SPA 切换后统计不应增加；另一个同源标签页也应排除。访问 `/demo?mazda_admin=0&mazda_site=my-blog` 后首次 PV 和 download 恢复计数，确认查询标记已从地址栏移除。
+2. `bun run start` 后打开 `/admin/demo`；首次展示增加 1 PV，模拟下载增加 1 个 download，切换示例文章增加 1 PV，重复当前路由不增加 PV。
+3. 进入 `/admin`，输入当前本地服务的管理令牌，核对 2 PV / 1 事件、页面 /admin/demo 与 /admin/demo/article，不含查询参数。检查控制台、7/30 天切换和手机布局。
+4. 在看板展开“管理员测试访问”，核对各域名的标记/取消链接不含令牌。在 `/admin/demo?mazda_admin=1&mazda_site=my-blog` 设置标记，刷新、模拟下载、SPA 切换后统计不应增加；另一个同源标签页也应排除。访问 `/admin/demo?mazda_admin=0&mazda_site=my-blog` 后首次 PV 和 download 恢复计数，确认查询标记已从地址栏移除。
+5. 验证站点管理时使用隔离 SITE_CONFIG 和数据库，避免修改真实配置。以空数组启动，在 WebUI 新建 my-blog，允许当前服务 origin 并配置 download/file_type；保存后访问 /admin/demo，刷新看板核对采集，无需重启。覆盖编辑、非法时区/正则提示、移除确认/取消、最后一个站点空态、重新登录后配置保留、390px 手机布局及控制台。并发版本和写盘失败用 bun test tests/site-config.test.ts 验证。
 
 已使用 `mcp__cua_repl` 内置浏览器验证。首次按工具说明通过 `cua.createBrowserTab("iab", url, { visible: false })` 建立标签页；按返回文档使用 Playwright locators、getAXState、截图及 tab.dev.logs。API 以当次文档为准。普通验证保持后台，结束后恢复临时视口覆盖，关闭临时标签页与服务。
 

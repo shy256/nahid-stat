@@ -42,8 +42,29 @@ p { line-height: 1.7; }
 .admin-link-row { display: flex; flex-wrap: wrap; gap: 12px 20px; padding: 8px 0; }
 .admin-link-row span { overflow-wrap: anywhere; }
 .admin-link-row a { color: var(--accent); text-underline-offset: 3px; }
-input, select, button { font: inherit; border-radius: 4px; min-height: 40px; }
-input, select { border: 1px solid var(--line); background: var(--surface); color: var(--text); padding: 9px 12px; font-size: 13px; }
+input, select, button, textarea { font: inherit; border-radius: 4px; min-height: 40px; }
+input, select, textarea { border: 1px solid var(--line); background: var(--surface); color: var(--text); padding: 9px 12px; font-size: 13px; }
+textarea { resize: vertical; line-height: 1.6; }
+button:disabled { opacity: .5; cursor: wait; }
+input:read-only { background: var(--paper); }
+.site-settings { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 24px 0; margin-bottom: 30px; }
+.site-settings .panel-heading { margin-bottom: 16px; }
+.settings-toolbar, .settings-actions, .field-heading { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.settings-toolbar { margin-bottom: 24px; }
+.settings-toolbar select { flex: 1; min-width: 140px; max-width: 360px; }
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 28px; }
+#site-fields { margin: 0; padding: 0; border: 0; min-width: 0; }
+.form-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; margin-bottom: 20px; }
+.form-field label, .field-heading > span { font-size: 12px; color: var(--text); }
+.form-field small { font-size: 11px; color: var(--muted); line-height: 1.7; }
+.field-heading { justify-content: space-between; }
+.event-rule { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 10px; margin-top: 10px; }
+.event-rule input { min-width: 0; width: 100%; }
+.danger { color: var(--error); }
+.delete-confirm { margin-top: 16px; padding: 12px 16px; background: var(--paper); font-size: 12px; }
+.delete-confirm p { margin-top: 0; }
+.integration { margin-top: 24px; margin-bottom: 0; }
+.integration textarea { font-family: Consolas, monospace; font-size: 12px; }
 .select-field { position: relative; display: flex; align-items: center; min-width: 0; }
 .select-field > .icon { position: absolute; left: 12px; width: 17px; height: 17px; color: var(--accent); pointer-events: none; }
 .select-field select { padding-left: 36px; max-width: 210px; cursor: pointer; }
@@ -121,8 +142,12 @@ code { background: var(--paper); padding: 2px 6px; border-radius: 2px; }
   .title-row { margin: 28px 0 24px; }
   h1 { font-size: 25px; }
   .page-title p { font-size: 11px; }
-  .controls { width: 100%; gap: 6px; }
-  .select-field:first-child { flex: 1; }
+  .controls { width: 100%; gap: 6px; flex-wrap: wrap; }
+  .settings-grid { grid-template-columns: 1fr; gap: 0; }
+  .settings-toolbar { gap: 8px; }
+  .event-rule { grid-template-columns: minmax(0, 1fr) auto; }
+  .event-rule input:nth-child(2) { grid-row: 2; grid-column: 1 / -1; }
+  .select-field:first-child { flex: 1 1 100%; }
   .select-field select { width: 100%; max-width: 100%; font-size: 12px; }
   .select-field > .icon { width: 16px; left: 9px; }
   .select-field select { padding-left: 30px; padding-right: 5px; }

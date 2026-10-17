@@ -20,6 +20,7 @@
 | `bun run typecheck` | TypeScript 静态检查 |
 | `bun test` | 功能、HTTP、SDK、初始化与备份测试 |
 | `bun run backup` | 需文件数据库，一致性快照到 data/backups；已验证 WAL 场景 |
+| `bun run sdk:release` | 按 package.json 版本生成 SDK 本地快照；拒绝覆盖已有版本的不同内容，不执行远程发布 |
 
 首次接入流程见 [README](../README.md)。随机管理令牌仅从本地 `.env` 查看。数据库 schema 为 v1，引入后续 schema 时需显式迁移，不能仅重写 user_version。
 

@@ -9,6 +9,7 @@
     "start": "bun src/index.ts",
     "setup": "bun scripts/setup.ts",
     "backup": "bun scripts/backup.ts",
+    "sdk:release": "bun scripts/release-sdk.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

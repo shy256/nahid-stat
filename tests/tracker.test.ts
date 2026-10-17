@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
 import { runInNewContext } from "node:vm";
+import { SDK_PATH, VERSION } from "../src/version";
 
-const source = await Bun.file(new URL("../public/tracker.js", import.meta.url)).text();
+const source = await Bun.file(new URL(`../public/sdk/${VERSION}.js`, import.meta.url)).text();
 function browser(options: { dnt?: string; gpc?: boolean; auto?: string; url?: string; site?: string; storage?: Map<string, string>; blockedStorage?: boolean; blockedWrite?: boolean; fetch?: (init: RequestInit) => Promise<Response> } = {}) {
   const listeners: Record<string, Function[]> = {};
   const sent: any[] = [], beacons: any[] = [];
@@ -15,7 +16,7 @@ function browser(options: { dnt?: string; gpc?: boolean; auto?: string; url?: st
   };
   const window: any = { addEventListener: (name: string, fn: Function) => (listeners[name] ??= []).push(fn) };
   const document = {
-    currentScript: { src: "https://stats.example.com/tracker.js", dataset: { site: options.site || "blog", auto: options.auto } },
+    currentScript: { src: `https://stats.example.com${SDK_PATH}`, dataset: { site: options.site || "blog", auto: options.auto } },
     referrer: "https://search.example.com/?private=secret", visibilityState: "visible",
     addEventListener: (name: string, fn: Function) => (listeners[name] ??= []).push(fn),
   };

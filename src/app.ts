@@ -2,6 +2,9 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 import type { Config } from "./config";
 import type { Store } from "./database";
 import { HttpError, normalizeEvent } from "./events";
+import { createSiteConfig, MAX_SITE_CONFIG_BODY } from "./site-config";
+import { createSdkHandler } from "./sdk";
+import { SDK_PATH, VERSION } from "./version";
 
 const MAX_BODY = 32 * 1024;
 const securityHeaders = {
@@ -11,8 +14,8 @@ const securityHeaders = {
   "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
 };
 
-async function readJson(req: Request): Promise<unknown> {
-  if (Number(req.headers.get("content-length")) > MAX_BODY) throw new HttpError(413, "请求过大");
+async function readJson(req: Request, limit = MAX_BODY): Promise<unknown> {
+  if (Number(req.headers.get("content-length")) > limit) throw new HttpError(413, "请求过大");
   const reader = req.body?.getReader();
   if (!reader) throw new HttpError(400, "请求体不能为空");
   const chunks: Uint8Array[] = [];
@@ -21,7 +24,7 @@ async function readJson(req: Request): Promise<unknown> {
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > MAX_BODY) { await reader.cancel(); throw new HttpError(413, "请求过大"); }
+    if (size > limit) { await reader.cancel(); throw new HttpError(413, "请求过大"); }
     chunks.push(value);
   }
   const body = new Uint8Array(size);
@@ -32,22 +35,25 @@ async function readJson(req: Request): Promise<unknown> {
 }
 
 export function createApp(config: Config, store: Store, now = () => Date.now()) {
+  const siteConfig = createSiteConfig(config);
+  const sdk = createSdkHandler();
   const tokenHash = createHash("sha256").update(config.adminToken).digest();
   const rateSecret = randomBytes(32);
   const buckets = new Map<string, { count: number; expires: number }>();
   const assets: Record<string, [string, string]> = {
-    "/": ["dashboard.html", "text/html; charset=utf-8"],
-    "/dashboard.js": ["dashboard.js", "text/javascript; charset=utf-8"],
-    "/style.css": ["style.css", "text/css; charset=utf-8"],
-    "/tracker.js": ["tracker.js", "text/javascript; charset=utf-8"],
+    "/admin": ["dashboard.html", "text/html; charset=utf-8"],
+    "/admin/": ["dashboard.html", "text/html; charset=utf-8"],
+    "/admin/dashboard.js": ["dashboard.js", "text/javascript; charset=utf-8"],
+    "/admin/style.css": ["style.css", "text/css; charset=utf-8"],
   };
   if (config.enableDemo) {
-    assets["/demo"] = ["demo.html", "text/html; charset=utf-8"];
-    assets["/demo.js"] = ["demo.js", "text/javascript; charset=utf-8"];
+    assets["/admin/demo"] = ["demo.html", "text/html; charset=utf-8"];
+    assets["/admin/demo.js"] = ["demo.js", "text/javascript; charset=utf-8"];
   }
   const bodyCache = new Map<string, Promise<string>>();
   for (const [file] of Object.values(assets)) {
-    bodyCache.set(file, Bun.file(new URL(`../public/${file}`, import.meta.url)).text());
+    bodyCache.set(file, Bun.file(new URL(`../public/${file}`, import.meta.url)).text().then((body) =>
+      file === "dashboard.js" || file === "demo.html" ? body.replaceAll("__MAZDA_SDK_PATH__", SDK_PATH) : body));
   }
 
   function limited(ip: string) {
@@ -97,14 +103,22 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
         const accepted = store.ingest(site, events, now());
         return json({ accepted, duplicates: events.length - accepted });
       }
-      if (req.method !== "GET") { headers.set("Allow", "GET"); throw new HttpError(405, "方法不支持"); }
-      if (url.pathname === "/health") return json({ status: "ok" });
-      if (url.pathname.startsWith("/api/")) {
+      if (url.pathname.startsWith("/admin/api/")) {
         const auth = req.headers.get("authorization") ?? "";
         const provided = createHash("sha256").update(auth.startsWith("Bearer ") ? auth.slice(7) : "").digest();
         if (!timingSafeEqual(provided, tokenHash)) throw new HttpError(401, "管理令牌无效");
-        if (url.pathname === "/api/sites") return json(config.sites.map(({ id, name, timezone, origins }) => ({ id, name, timezone, origins })));
-        if (url.pathname === "/api/stats") {
+        if (url.pathname === "/admin/api/sites") {
+          if (req.method === "PUT") {
+            await siteConfig.save(await readJson(req, MAX_SITE_CONFIG_BODY), req.headers.get("if-match"));
+          } else if (req.method !== "GET") {
+            headers.set("Allow", "GET, PUT");
+            throw new HttpError(405, "方法不支持");
+          }
+          headers.set("ETag", siteConfig.version());
+          return json(config.sites);
+        }
+        if (req.method !== "GET") { headers.set("Allow", "GET"); throw new HttpError(405, "方法不支持"); }
+        if (url.pathname === "/admin/api/stats") {
           const site = config.sites.find((site) => site.id === url.searchParams.get("site_id"));
           if (!site) throw new HttpError(404, "站点不存在");
           const days = Number(url.searchParams.get("days") ?? 7);
@@ -113,14 +127,14 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
         }
         throw new HttpError(404, "接口不存在");
       }
+      const sdkResponse = sdk(req, url);
+      if (sdkResponse) return sdkResponse;
+      if (req.method !== "GET") { headers.set("Allow", "GET"); throw new HttpError(405, "方法不支持"); }
+      if (url.pathname === "/health") return json({ status: "ok", version: VERSION });
       const asset = assets[url.pathname];
       if (!asset) throw new HttpError(404, "页面不存在");
       const [file, contentType] = asset;
       headers.set("Content-Type", contentType);
-      if (file === "tracker.js") {
-        headers.set("Cache-Control", "public, max-age=300");
-        headers.set("Access-Control-Allow-Origin", "*");
-      }
       return new Response(await bodyCache.get(file), { headers });
     } catch (error) {
       if (error instanceof HttpError) return json({ error: error.message }, error.status);

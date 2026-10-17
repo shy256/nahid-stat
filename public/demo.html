@@ -2,15 +2,15 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>采集验证 · Mazda</title><link rel="stylesheet" href="/style.css">
-  <script defer src="/tracker.js" data-site="my-blog"></script>
-  <script defer src="/demo.js"></script>
+  <title>采集验证 · Mazda</title><link rel="stylesheet" href="/admin/style.css">
+  <script defer src="__MAZDA_SDK_PATH__" data-site="my-blog"></script>
+  <script defer src="/admin/demo.js"></script>
 </head>
 <body><main>
-  <header class="masthead"><a class="brand" href="/">m<span class="brand-dot">.</span> <span>Mazda Analytics</span></a><span class="privacy-badge">本地接入验证</span></header>
+  <header class="masthead"><a class="brand" href="/admin">m<span class="brand-dot">.</span> <span>Mazda Analytics</span></a><span class="privacy-badge">本地接入验证</span></header>
   <section class="demo"><span class="eyebrow">TRACKER PLAYGROUND</span><h1>让第一条数据到达。</h1>
     <p>打开此页会自动发送一次浏览事件。以下按钮分别验证自定义事件、SPA 路由切换和重复路由去重。示例固定使用 <code>my-blog</code> 站点。</p>
     <div class="demo-actions"><button id="download" type="button">模拟下载</button><button id="route" type="button" class="secondary">切换到示例文章</button><button id="same-route" type="button" class="secondary">重复当前路由</button></div>
-    <p id="demo-status" role="status">正在初始化采集脚本…</p><p><a href="/">打开统计看板 →</a></p>
+    <p id="demo-status" role="status">正在初始化采集脚本…</p><p><a href="/admin">打开统计看板 →</a></p>
   </section>
 </main></body></html>

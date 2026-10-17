@@ -1,6 +1,8 @@
 import { loadConfig } from "./config";
 import { createStore } from "./database";
 import { createApp } from "./app";
+import { MAX_SITE_CONFIG_BODY } from "./site-config";
+import { VERSION } from "./version";
 
 const config = await loadConfig();
 const store = createStore(config.databasePath);
@@ -13,14 +15,14 @@ const cleanupTimer = setInterval(() => {
 const server = Bun.serve({
   hostname: config.host,
   port: config.port,
-  maxRequestBodySize: 32 * 1024,
+  maxRequestBodySize: MAX_SITE_CONFIG_BODY,
   idleTimeout: 10,
   fetch(req, server) {
     // 仅使用连接来源；不信任任意 X-Forwarded-For。
     return handle(req, server.requestIP(req)?.address ?? "unknown");
   },
 });
-console.log(`Mazda Analytics: ${server.url}`);
+console.log(`Mazda Analytics ${VERSION}: ${new URL("/admin", server.url)}`);
 let stopping = false;
 async function stop() {
   if (stopping) return;

@@ -2,9 +2,11 @@
 
 基于 Bun、TypeScript 和 SQLite 的个人网站统计服务。运行时无第三方依赖，一套服务提供采集脚本、统计 API 和中文管理看板。
 
+当前版本 **0.1.0**，项目与 SDK 的当前版本统一取自 `package.json` 的 `version`；启动日志和 `/health` 返回运行版本。
+
 ## 已实现
 
-- 多站点配置，精确到 HTTP(S) origin 的采集来源白名单。
+- WebUI 新增、编辑和移除站点，配置保存后立即生效并持久化；精确到 HTTP(S) origin 的采集来源白名单。
 - PV、每日趋势、热门页面、引流来源、设备大类、自定义事件次数。
 - 自动页面采集、SPA History 路由监听、手动埋点、短暂失败重试、页面隐藏时 Beacon 上报。
 - 管理员浏览器标记，测试访问与自定义事件不计入统计，可随时取消。
@@ -25,13 +27,19 @@ bun run setup
 bun run dev
 ```
 
-`setup` 会创建被 Git 忽略的 `.env` 与 `sites.json`，生成随机管理令牌，不覆盖已有文件。打开 [本地看板](http://127.0.0.1:3000/)，输入本地 `.env` 中的 `ADMIN_TOKEN`。令牌只保留在页面内存；刷新或退出后需要重新输入。
+`setup` 会创建被 Git 忽略的 `.env` 与 `sites.json`，生成随机管理令牌，不覆盖已有文件。打开 [本地看板](http://127.0.0.1:3000/admin)，输入本地 `.env` 中的 `ADMIN_TOKEN`。令牌只保留在页面内存；刷新或退出后需要重新输入。
 
 如果手动复制 `.env.example`，必须替换令牌占位值，否则服务拒绝启动。Bun 自动加载 `.env`；进程环境变量优先。正式运行用 `bun run start`。
 
 ## 配置站点
 
-编辑 `sites.json`，修改后重启服务。例如：
+登录看板后点击“站点配置”，选择已有站点或“新增站点”，填写站点 ID、名称、允许的域名和时区。自定义事件可逐项添加，属性白名单用英文逗号分隔；域名和路径脱敏规则每行一条。点击“保存配置”后立即生效，无需重启，并生成对应的接入代码。
+
+配置保存在 `SITE_CONFIG` 指向的本地文件（默认 `sites.json`），重启后保留。配置文件不存在或内容为 `[]` 时，看板支持直接添加第一个站点。移除站点前有二次确认；移除后停止采集并隐藏该站点，但保留数据库内的历史统计，重新添加同一 ID 可继续查询。已有站点的 ID 在表单中只读。
+
+多个页面同时编辑时会检查配置版本，过期保存会被拒绝；通过“重新载入”读取最新配置后再编辑。保存失败时运行配置保持原值。服务进程需要配置目录和文件的写入权限。
+
+也可手工编辑配置文件，手工修改后需重启服务；网页会拒绝覆盖检测到的外部修改。例如：
 
 ```json
 [
@@ -58,23 +66,31 @@ bun run dev
 | --- | --- |
 | `ADMIN_TOKEN` | 必填，至少 24 个字符，建议使用 setup 生成的 256 位随机令牌 |
 | `HOST` / `PORT` | `127.0.0.1` / `3000` |
-| `SITE_CONFIG` | `sites.example.json`；setup 生成的 `.env` 指向 `sites.json` |
+| `SITE_CONFIG` | `sites.json`；缺少文件时以空站点启动，首次网页保存时创建 |
 | `DATABASE_PATH` | `data/analytics.sqlite` |
 | `RETENTION_DAYS` | `30`，允许 1–365，仅控制事件明细 |
-| `ENABLE_DEMO` | `false`；设为 `true` 后提供 `/demo` 最小验证页 |
+| `ENABLE_DEMO` | `false`；设为 `true` 后提供 `/admin/demo` 最小验证页 |
 
 ## 网站接入
 
 将实际网站 origin 加入站点配置，并在网站 HTML 中插入：
 
 ```html
-<script defer src="https://stats.example.com/tracker.js" data-site="my-blog"></script>
+<script defer src="https://stats.example.com/mazda@0.1.0" data-site="my-blog"></script>
 ```
+
+`/mazda@0.1.0` 固定使用该版本；看板生成的接入代码也固定到当前版本。希望自动跟随最新版时可使用无版本地址：
+
+```html
+<script defer src="https://stats.example.com/mazda" data-site="my-blog"></script>
+```
+
+`/mazda` 和兼容旧接入的 `/tracker.js` 均以 `302` 重定向到当前 `/mazda@<version>`，保留查询参数，且不缓存重定向。固定版本支持 GET/HEAD、跨域加载与一年 immutable 缓存；不存在的版本返回 404，不回退到最新版。
 
 脚本自动采集首次展示、History 路由路径变化、前进后退以及 BFCache 恢复。仅查询参数或 hash 变化不增加 PV。SPA 自动监听在 History 调用后立即读取路径；复杂框架可关闭自动模式，在路由完成后显式调用：
 
 ```html
-<script defer src="https://stats.example.com/tracker.js" data-site="my-blog" data-auto="false"></script>
+<script defer src="https://stats.example.com/mazda@0.1.0" data-site="my-blog" data-auto="false"></script>
 ```
 
 ```js
@@ -130,15 +146,23 @@ Content-Type: text/plain;charset=UTF-8
 
 成功响应为 `{"accepted":1,"duplicates":0}`。最多 20 条/批、32 KiB/请求；服务端先校验整批，任一事件无效时不写入任何事件。重复事件在明细保留期内按 `(site_id, event_id)` 去重，过期后不保证去重。数据库事务提交后才返回成功。
 
-管理接口均要求 `Authorization: Bearer <ADMIN_TOKEN>`：
+管理看板位于 `/admin`（同时支持 `/admin/`），页面脚本、样式、可选验证页和管理接口全部位于 `/admin/` 下。网关统一鉴权时需同时匹配精确路径 `/admin` 和前缀 `/admin/`，并将原始路径转发给服务，不剥离前缀。应用内管理接口仍要求 `Authorization: Bearer <ADMIN_TOKEN>`，网关需保留该请求头。
+
+原 `/`、`/dashboard.js`、`/style.css`、`/demo`、`/demo.js`、`/api/sites` 和 `/api/stats` 不再提供管理功能。公开 `/mazda`、`/mazda@<version>`、兼容地址 `/tracker.js`、`/api/collect`（含 OPTIONS）和 `/health` 可独立放行，网关需允许 SDK 重定向的目标路径。
+
+管理接口：
 
 | 接口 | 返回内容 |
 | --- | --- |
-| `GET /api/sites` | 站点 ID、名称、时区及 origins（用于管理员标记链接） |
-| `GET /api/stats?site_id=my-blog&days=7` | 合计、每日趋势、页面/来源/设备/事件排行 |
-| `GET /health` | 公开进程健康检查，不返回配置或统计数据 |
+| `GET /admin/api/sites` | 完整站点配置数组：id、name、timezone、origins、events、redactPaths；响应 ETag 为配置版本 |
+| `PUT /admin/api/sites` | 请求体为完整站点配置数组（0–100 个，最多 4 MiB）；必须带 GET 返回的 `If-Match: <ETag>`，成功返回新配置及 ETag |
+| `GET /admin/api/stats?site_id=my-blog&days=7` | 合计、每日趋势、页面/来源/设备/事件排行 |
+
+`GET /health` 是公开进程健康检查，返回 `{ "status": "ok", "version": "0.1.0" }`，不返回配置或统计数据。
 
 `days` 仅支持 `1`、`7`、`30`，均包含站点当地的今天。排行最多 20 项。来源按 `utm_source → 外部来源域名 → 直接访问/未知` 优先级统计页面浏览量；同一文档的 SPA 页面继承该文档初始推广参数和来源。UTM medium/campaign 保存于清洗后的明细，初版面板不提供对应筛选。
+
+配置写入沿用 Bearer 鉴权且不开放 CORS。无效配置返回 400，缺少 If-Match 返回 428，版本冲突或检测到外部文件修改返回 409。采集请求仍限制为 32 KiB。
 
 ## 数据与运行边界
 
@@ -172,4 +196,16 @@ bun test
 
 测试覆盖去重、清洗、白名单、批次原子性、事务失败回滚、来源隔离、鉴权、限流、请求大小、时区、明细清理、落盘重开、HTTP 请求，以及脚本的 SPA 去重、重试 ID、Beacon 与 DNT。
 
-本地浏览器验证：在 `.env` 中设置 `ENABLE_DEMO=true`，保留示例 `my-blog` 配置和本机 origins，重启后访问 [最小接入页](http://127.0.0.1:3000/demo)。首次展示应增加 1 PV，模拟下载增加 1 个 download，切换示例文章再增加 1 PV，重复当前路由不增加 PV。结束后可关闭 demo；示例数据是真实写入，若需与个人网站隔离，请使用单独数据库。
+本地浏览器验证：在 `.env` 中设置 `ENABLE_DEMO=true`，保留示例 `my-blog` 配置和本机 origins，重启后访问 [最小接入页](http://127.0.0.1:3000/admin/demo)。首次展示应增加 1 PV，模拟下载增加 1 个 download，切换示例文章再增加 1 PV，重复当前路由不增加 PV。结束后可关闭 demo；示例数据是真实写入，若需与个人网站隔离，请使用单独数据库。
+
+## 版本更新
+
+SDK 源码在 `public/tracker.js`，已生成的版本快照在 `public/sdk/<version>.js`。修改 SDK 后，先提升 `package.json` 的 `version`，再在根目录执行：
+
+```powershell
+bun run sdk:release
+bun run typecheck
+bun test
+```
+
+`sdk:release` 仅生成本地快照，不发布或部署；同版本内容一致时可重复执行，内容不同时拒绝覆盖。保留旧快照并将新快照与版本号一起纳入版本控制，随后重启服务，`/mazda` 即指向新版本，历史版本 URL 继续提供原内容。缺少当前版本快照时服务拒绝启动。项目升级时也需生成对应版本快照，SDK 未变时允许不同版本快照内容一致；同步更新本文的当前版本和接入示例。
